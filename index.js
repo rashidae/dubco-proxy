@@ -1,15 +1,24 @@
-require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const fetch = require('node-fetch');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
-app.post('/proxy', async (req, res) => {
-    const { url, domain } = req.body;
+// Add CSP Headers
+app.use((req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; connect-src 'self' https://api.dub.co; font-src 'self' data:; style-src 'self' 'unsafe-inline';"
+    );
+    next();
+});
 
+app.post('/', async (req, res) => {
+    const { url, domain } = req.body;
     try {
         const response = await fetch('https://api.dub.co/links', {
             method: 'POST',
@@ -22,14 +31,12 @@ app.post('/proxy', async (req, res) => {
 
         if (!response.ok) {
             const errorDetails = await response.text();
-            console.error(`Error from Dub.co: ${errorDetails}`);
             return res.status(response.status).send(errorDetails);
         }
 
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        console.error(`Proxy error: ${error.message}`);
         res.status(500).send({ error: error.message });
     }
 });
