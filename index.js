@@ -19,6 +19,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Root route for verification and basic information
+app.get('/', (req, res) => {
+    res.send('Welcome to the Dub.co Proxy Server! Use the POST endpoint at "/" to create short links.');
+});
+
 // POST route for proxying requests to Dub.co
 app.post('/', async (req, res) => {
     console.log('Received request:', req.body);
