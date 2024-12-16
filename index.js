@@ -21,10 +21,10 @@ app.use((req, res, next) => {
 
 // Root route for verification and basic information
 app.get('/', (req, res) => {
-    res.send('Welcome to the Dub.co Proxy Server! Use the POST endpoint at "/" to create short links.');
+    res.send('Welcome to the Dub.co Proxy Server! Use POST "/" to create short links and GET "/stats/:key" to fetch stats.');
 });
 
-// POST route for proxying requests to Dub.co
+// POST route for creating short links
 app.post('/', async (req, res) => {
     console.log('Received request:', req.body);
 
@@ -34,7 +34,6 @@ app.post('/', async (req, res) => {
     }
 
     try {
-        // Send request to Dub.co API
         const response = await fetch('https://api.dub.co/links', {
             method: 'POST',
             headers: {
@@ -55,6 +54,37 @@ app.post('/', async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error('Proxy error:', error.message);
+        res.status(500).send({ error: error.message });
+    }
+});
+
+// GET route for fetching stats of a short link
+app.get('/stats/:key', async (req, res) => {
+    const { key } = req.params;
+
+    if (!key) {
+        return res.status(400).send({ error: 'Key is required to fetch stats.' });
+    }
+
+    try {
+        const response = await fetch(`https://api.dub.co/links/${key}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${process.env.DUB_CO_API_KEY}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorDetails = await response.text();
+            console.error(`Failed to fetch stats for key ${key}:`, errorDetails);
+            return res.status(response.status).send({ error: errorDetails });
+        }
+
+        const data = await response.json();
+        console.log(`Stats for key ${key}:`, data);
+        res.json(data);
+    } catch (error) {
+        console.error('Stats fetch error:', error.message);
         res.status(500).send({ error: error.message });
     }
 });
